@@ -1,4 +1,5 @@
 const DELTATIME = 1000; // ms
+const appElement = document.querySelector('#app');
 
 const quizItems = [
     {
@@ -42,7 +43,7 @@ const quizItems = [
         correctIndex: 2
     },
     {
-        question: "A very useful tool used during development and debugging for printing contnt to the debugger is:",
+        question: "A very useful tool used during development and debugging for printing content to the debugger is:",
         answers: [
             "JavaScript",
             "terminal/bash",
@@ -58,6 +59,25 @@ let state = {
     questionCorrect: null,
 };
 
+function createHeading(text) {
+    let el = document.createElement('h1');
+    el.textContent = text;
+    return el;
+}
+
+/**
+ * @param {string} text 
+ * @param {string | null} type 
+ * @param {(e: MouseEvent) => void} clickCallback 
+ */
+function createButton(text, type, clickCallback) {
+    let button = document.createElement('button');
+    button.type = type ?? 'button';
+    button.textContent = text;
+    button.addEventListener('click', clickCallback);
+    return button;
+}
+
 function renderStatusBar(timeLeft) {
     let statusBarElement = document.querySelector('#status-bar');
     statusBarElement.innerHTML = `
@@ -67,21 +87,15 @@ function renderStatusBar(timeLeft) {
 }
 
 function renderWelcomeScreen() {
-    let appElement = document.querySelector('#app');
     appElement.innerHTML = '';
-    
-    const heading = "Coding Quiz Challenge";
-    const description = "Try to answer the following code-related questions within the time limit. Keep in mind that incorrect answers will penalize your score/time by ten seconds!";
 
-    let headingElement = document.createElement('h1');
-    headingElement.textContent = heading;
+    let headingElement = createHeading('Coding Quiz Challenge');
 
+    const description = 'Try to answer the following code-related questions within the time limit. Keep in mind that incorrect answers will penalize your score/time by ten seconds!';
     let descriptionElement = document.createElement('p');
     descriptionElement.textContent = description;
 
-    let startButton = document.createElement('button');
-    startButton.textContent = "Start Quiz";
-    startButton.addEventListener('click', e => {
+    let startButton = createButton('Start Quiz', null, e => {
         renderQuestion(state.questionIndex, null);
     });
 
@@ -98,27 +112,24 @@ function renderQuestion(questionIndex, alert) {
 }
 
 function renderQuizItem(item) {
-    let appElement = document.getElementById('app');
     appElement.innerHTML = '';
 
     let quizItemContainer = document.createElement('div');
     quizItemContainer.setAttribute('class', 'quiz-item-container');
 
-    let questionElement = document.createElement('h1');
-    questionElement.setAttribute('class', 'question');
-    questionElement.textContent = item.question;
+    let questionElement = createHeading(item.question);
     quizItemContainer.appendChild(questionElement);
 
     for (let i = 0; i < item.answers.length; ++i) {
         let answer = item.answers[i];
-        let answerButton = document.createElement('button');
-        answerButton.setAttribute('class', 'answer');
-        answerButton.setAttribute('data-index', i);
-        answerButton.textContent = answer;
-        answerButton.addEventListener('click', e => {
+        
+        let answerButton = createButton(answer, null, e => {
             let answerIndex = parseInt(answerButton.getAttribute('data-index'));
             nextQuestion(answerIndex === item.correctIndex);
         });
+        answerButton.setAttribute('class', 'answer');
+        answerButton.setAttribute('data-index', i);
+
         quizItemContainer.appendChild(answerButton);
     }
 
@@ -138,12 +149,15 @@ function nextQuestion(isCorrect) {
 }
 
 function renderAlert(alert) {
+    // Remove any existing alerts on the page
+    document.querySelectorAll('.alert')
+        .forEach(el => document.body.removeChild(el));
+
     let alertElement = document.createElement('div');
     alertElement.setAttribute('class', 'alert');
     alertElement.appendChild(document.createElement('hr'));
     alertElement.append(alert.text);
     
-    let appElement = document.getElementById('app');
     appElement.after(alertElement);
 
     setTimeout(() => {  
@@ -169,11 +183,9 @@ function Alert(text, timeout) {
 } 
 
 function renderFinalScore(finalScore, alert) {
-    let appElement = document.querySelector('#app');
     appElement.innerHTML = '';
 
-    let headingElement = document.createElement('h1');
-    headingElement.textContent = "All Done!";
+    let headingElement = createHeading('All Done!');
 
     let reportElement = document.createElement('p');
     reportElement.textContent = `Your final score is ${finalScore}`;
@@ -182,10 +194,8 @@ function renderFinalScore(finalScore, alert) {
     form.innerHTML = `
         <label for="intials">Enter Initials</label>
         <input type="text" name="initials" id="initials">
-    `
-    let submitButton = document.createElement('button');
-    submitButton.type = 'submit';
-    submitButton.textContent = 'Submit';
+    `;
+
     form.addEventListener('submit', e => {
         e.preventDefault();
         let initials = document.querySelector('#initials').value;
@@ -196,6 +206,8 @@ function renderFinalScore(finalScore, alert) {
         saveScore(initials, finalScore);
         renderHighscoresPage();
     });
+
+    let submitButton = createButton('Submit', 'submit');
     form.appendChild(submitButton);
 
     renderStatusBar();
@@ -206,21 +218,18 @@ function renderFinalScore(finalScore, alert) {
 }
 
 function renderHighscoresPage() {
-    let appElement = document.querySelector('#app');
-    appElement.innerHTML = "";
+    appElement.innerHTML = '';
 
-    let headingElement = document.createElement('h1');
-    headingElement.textContent = "Highscores";
+    let headingElement = createHeading('Highscores');
     
-    let restartButton = document.createElement('button');
-    restartButton.textContent = "Go Back";
-    restartButton.addEventListener('click', renderWelcomeScreen);
+    let restartButton = createButton('Go Back', null, e => {
+        state.questionIndex = 0;
+        renderWelcomeScreen();
+    });
 
-    let clearButton = document.createElement('button');
-    clearButton.textContent = "Clear Highscores";
-    clearButton.addEventListener('click', e => {
+    let clearButton = createButton('Clear Highscores', null, e => {
         clearHighscores();
-        rerenderHighscoresList();
+        rerenderHighscoresList()
     });
 
     appElement.appendChild(headingElement);
@@ -231,7 +240,6 @@ function renderHighscoresPage() {
 
 function renderHighscoresList() {
     let highScores = loadScores();
-    let appElement = document.querySelector('#app');
 
     let highscoresList = document.createElement('ol');
     highscoresList.id = 'highscores-list';
@@ -252,6 +260,7 @@ function rerenderHighscoresList() {
     let highscoresList = document.querySelector('#highscores-list');
     highscoresList.innerHTML = '';
     
+    // TODO: Remove repetition of this maybe?
     for (let initials in highScores) {
         let score = highScores[initials];
         let li = document.createElement('li');
