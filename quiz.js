@@ -1,4 +1,5 @@
-const DELTATIME = 1000; // ms
+const START_TIME = 75; // seconds
+const TIME_PENALTY = 10;
 const appElement = document.querySelector('#app');
 
 const quizItems = [
@@ -57,6 +58,25 @@ const quizItems = [
 let state = {
     questionIndex: 0,
     questionCorrect: null,
+    timer: {
+        id: -1,
+        timeLeft: 0,
+
+        start() {
+            this.timeLeft = START_TIME;
+            this.id = setInterval(() => {
+                if (--this.timeLeft === 0) {
+                    this.stop();
+                }
+
+                renderStatusBar();
+            }, 1000);
+       },
+
+       stop() {
+           clearInterval(this.id);
+       }
+    },
 };
 
 function createHeading(text) {
@@ -78,11 +98,11 @@ function createButton(text, type, clickCallback) {
     return button;
 }
 
-function renderStatusBar(timeLeft) {
+function renderStatusBar() {
     let statusBarElement = document.querySelector('#status-bar');
     statusBarElement.innerHTML = `
         <a href="#" id="view-highscores">View Highscores</a>
-        <span id="time">Time: ${timeLeft}</span>
+        <span id="time">Time: ${state.timer.timeLeft}</span>
     `;
 }
 
@@ -96,6 +116,7 @@ function renderWelcomeScreen() {
     descriptionElement.textContent = description;
 
     let startButton = createButton('Start Quiz', null, e => {
+        state.timer.start();
         renderQuestion(state.questionIndex, null);
     });
 
@@ -141,10 +162,17 @@ function renderQuizItem(item) {
  */
 function nextQuestion(isCorrect) {
     let alert = Alert(isCorrect ? "Correct!" : "Incorrect...", 5);
+
+    if (!isCorrect) {
+        // Yes, this causes a data race. Too bad!
+        state.timer.timeLeft -= TIME_PENALTY;
+    }
+
     if (++state.questionIndex < quizItems.length) {
         renderQuestion(state.questionIndex, alert);
     } else {
-        renderFinalScore(69, alert);
+        state.timer.stop();
+        renderFinalScore(state.timer.timeLeft, alert);
     }
 }
 
@@ -160,15 +188,16 @@ function renderAlert(alert) {
     
     appElement.after(alertElement);
 
+    // This produces an exception when it attempts to remove the element after it's already been removed
+    // Doesn't crash anything so we're letting it be
     setTimeout(() => {  
         document.body.removeChild(alertElement);
     }, alert.timer * 1000);
 }
 
 function renderAlertIfNotNullish(alert) {
-    if (alert != null) {
-        renderAlert(alert);
-    }
+    // The use of != here instead of !== is deliberate, hence "nullish"
+    (alert != null) && renderAlert(alert);
 }
 
 /**
@@ -180,7 +209,7 @@ function Alert(text, timeout) {
         text,
         timer: timeout
     }
-} 
+}
 
 function renderFinalScore(finalScore, alert) {
     appElement.innerHTML = '';
@@ -238,6 +267,13 @@ function renderHighscoresPage() {
     appElement.appendChild(clearButton);
 }
 
+function createHighscoreEntry(initials, score) {
+    let li = document.createElement('li');
+    li.setAttribute('class', 'high-score');
+    li.textContent = `${initials} - ${score}`;
+    return li;
+}
+
 function renderHighscoresList() {
     let highScores = loadScores();
 
@@ -246,10 +282,8 @@ function renderHighscoresList() {
 
     for (let initials in highScores) {
         let score = highScores[initials];
-        let li = document.createElement('li');
-        li.setAttribute('class', 'high-score');
-        li.textContent = `${initials} - ${score}`;
-        highscoresList.appendChild(li);
+        let highscoreEntry = createHighscoreEntry(initials, score);
+        highscoresList.appendChild(highscoreEntry);
     }
 
     appElement.appendChild(highscoresList);
@@ -260,13 +294,10 @@ function rerenderHighscoresList() {
     let highscoresList = document.querySelector('#highscores-list');
     highscoresList.innerHTML = '';
     
-    // TODO: Remove repetition of this maybe?
     for (let initials in highScores) {
         let score = highScores[initials];
-        let li = document.createElement('li');
-        li.setAttribute('class', 'high-score');
-        li.textContent = `${initials} - ${score}`;
-        highscoresList.appendChild(li);
+        let highscoreEntry = createHighscoreEntry(initials, score);
+        highscoresList.appendChild(highscoreEntry);
     }
 }
 
