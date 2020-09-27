@@ -1,0 +1,45 @@
+* {
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif
+}
+
+#status-bar {
+    display: flex;
+    justify-content: space-between;
+}
+
+#app {
+    margin: 0 auto;
+    width: 60%;
+}
+
+button {
+    color: white;
+    background-color: darkorchid;
+    border: unset;
+    font-size: larger;
+    padding: 3px 7px;
+    border-radius: 6px;
+    margin: 10px;
+}
+
+button.answer {
+    display: block;
+}
+
+button:hover {
+    background-color: rebeccapurple;
+}
+
+a {
+    text-decoration: none;
+    color: darkorchid;
+}
+
+a:hover {
+    color: rebeccapurple;
+    text-decoration: underline;
+}
+
+ol#highscores-list {
+    background-color: rgba(213, 191, 216, 0.5);
+}

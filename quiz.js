@@ -1,5 +1,6 @@
 const START_TIME = 75; // seconds
 const TIME_PENALTY = 10;
+const HIGHSCORE_TABLE_STORAGE_KEY = 'highscores';
 const appElement = document.querySelector('#app');
 
 const quizItems = [
@@ -75,6 +76,11 @@ let state = {
 
        stop() {
            clearInterval(this.id);
+       },
+
+       reset() {
+           this.id = -1;
+           this.timeLeft = 0;
        }
     },
 };
@@ -104,6 +110,11 @@ function renderStatusBar() {
         <a href="#" id="view-highscores">View Highscores</a>
         <span id="time">Time: ${state.timer.timeLeft}</span>
     `;
+
+    document.querySelector('a#view-highscores').addEventListener('click', e => {
+        e.preventDefault();
+        renderHighscoresPage();
+    });
 }
 
 function renderWelcomeScreen() {
@@ -252,6 +263,7 @@ function renderHighscoresPage() {
     let headingElement = createHeading('Highscores');
     
     let restartButton = createButton('Go Back', null, e => {
+        state.timer.reset();
         state.questionIndex = 0;
         renderWelcomeScreen();
     });
@@ -275,14 +287,13 @@ function createHighscoreEntry(initials, score) {
 }
 
 function renderHighscoresList() {
-    let highScores = loadScores();
+    let highscores = loadScoresSorted();
 
     let highscoresList = document.createElement('ol');
     highscoresList.id = 'highscores-list';
 
-    for (let initials in highScores) {
-        let score = highScores[initials];
-        let highscoreEntry = createHighscoreEntry(initials, score);
+    for (let highscore of highscores) {
+        let highscoreEntry = createHighscoreEntry(highscore.initials, highscore.value);
         highscoresList.appendChild(highscoreEntry);
     }
 
@@ -290,36 +301,60 @@ function renderHighscoresList() {
 }
 
 function rerenderHighscoresList() {
-    let highScores = loadScores();
+    let highscores = loadScoresSorted();
     let highscoresList = document.querySelector('#highscores-list');
     highscoresList.innerHTML = '';
     
-    for (let initials in highScores) {
-        let score = highScores[initials];
-        let highscoreEntry = createHighscoreEntry(initials, score);
+    for (let highscore of highscores) {
+        let highscoreEntry = createHighscoreEntry(highscore.initials, highscore.value);
         highscoresList.appendChild(highscoreEntry);
     }
 }
 
-function saveScore(initials, score) {
-    let highScores = loadScores();
-    if (highScores[initials] !== undefined) {
-        if (finalScore > highScores[initials]) {
-            highScores[initials] = score;
-        }
-    } else {
-        highScores[initials] = score;
-    }
-
-    localStorage.setItem('highScores', JSON.stringify(highScores));
+function Score(initials, value) {
+    return {
+        initials,
+        value
+    };
 }
 
+function saveScore(initials, score) {
+    let highscores = loadScores();
+    let extistingScore = highscores.find(highscore =>
+        highscore.initials === initials
+    );
+    
+    if (extistingScore === undefined) {
+        let highscore = Score(initials, score);
+        highscores.push(highscore);
+    } else {
+        extistingScore.value = Math.max(score, extistingScore.value);
+    }
+
+    localStorage.setItem(HIGHSCORE_TABLE_STORAGE_KEY, JSON.stringify(highscores));
+}
+
+/**
+ * @returns { {initials: string, value: number}[] }
+ */
 function loadScores() {
-    return JSON.parse(localStorage.getItem('highScores')) ?? {}
+    return JSON.parse(localStorage.getItem(HIGHSCORE_TABLE_STORAGE_KEY)) ?? []
 }
 
 function clearHighscores() {
-    localStorage.setItem('highScores', JSON.stringify({}));
+    localStorage.setItem(HIGHSCORE_TABLE_STORAGE_KEY, JSON.stringify([]));
 }
+
+/**
+ * @param { {initials: string, value: number}[] } scores 
+ */
+function sortScores(scores) {
+    return scores.sort((a, b) => b.value - a.value);
+}
+
+function loadScoresSorted() {
+    return sortScores(loadScores());
+}
+
 
 renderWelcomeScreen();
