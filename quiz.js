@@ -1,8 +1,12 @@
+/*** GLOBAL VARIABLES ***/
+
 const START_TIME = 75; // seconds
 const TIME_PENALTY = 10;
 const HIGHSCORE_TABLE_STORAGE_KEY = 'highscores';
+
 const appElement = document.querySelector('#app');
 
+// The questions for the quiz
 const quizItems = [
     {
         question: "Commonly-used data types DO NOT include:",
@@ -56,6 +60,7 @@ const quizItems = [
     }
 ];
 
+// The shared mutable state of the application
 let state = {
     questionIndex: 0,
     questionCorrect: null,
@@ -85,6 +90,35 @@ let state = {
     },
 };
 
+/*** OBJECT "CONSTRUCTORS" ***/
+
+/**
+ * @param {string} text 
+ * @param {number} timeout 
+ */
+function Alert(text, timeout) {
+    return {
+        text,
+        timer: timeout
+    }
+}
+
+/**
+ * @param {string} initials 
+ * @param {number} value 
+ */
+function Score(initials, value) {
+    return {
+        initials,
+        value
+    };
+}
+
+/*** ELEMENT CREATION ***/
+
+/**
+ * @param {string} text 
+ */
 function createHeading(text) {
     let el = document.createElement('h1');
     el.textContent = text;
@@ -104,43 +138,33 @@ function createButton(text, type, clickCallback) {
     return button;
 }
 
+/**
+ * @param {string} initials 
+ * @param {number} score 
+ */
+function createHighscoreEntry(initials, score) {
+    let li = document.createElement('li');
+    li.setAttribute('class', 'high-score');
+    li.textContent = `${initials} - ${score}`;
+    return li;
+}
+
+/*** COMPONENT RENDERING ***/
+
 function renderStatusBar() {
     let statusBarElement = document.querySelector('#status-bar');
+
+    // Just writing the HTML directly instead of doing the createElement song-and-dance
     statusBarElement.innerHTML = `
         <a href="#" id="view-highscores">View Highscores</a>
         <span id="time">Time: ${state.timer.timeLeft}</span>
     `;
 
+    // This is the only way I could get a click event to register on the a tag
     document.querySelector('a#view-highscores').addEventListener('click', e => {
         e.preventDefault();
-        renderHighscoresPage();
+        renderHighscoresScene();
     });
-}
-
-function renderWelcomeScreen() {
-    appElement.innerHTML = '';
-
-    let headingElement = createHeading('Coding Quiz Challenge');
-
-    const description = 'Try to answer the following code-related questions within the time limit. Keep in mind that incorrect answers will penalize your score/time by ten seconds!';
-    let descriptionElement = document.createElement('p');
-    descriptionElement.textContent = description;
-
-    let startButton = createButton('Start Quiz', null, e => {
-        state.timer.start();
-        renderQuestion(state.questionIndex, null);
-    });
-
-    renderStatusBar();
-    appElement.appendChild(headingElement);
-    appElement.appendChild(descriptionElement);
-    appElement.appendChild(startButton);
-}
-
-function renderQuestion(questionIndex, alert) {
-    renderStatusBar();
-    renderQuizItem(quizItems[questionIndex]);
-    renderAlertIfNotNullish(alert);
 }
 
 function renderQuizItem(item) {
@@ -168,25 +192,6 @@ function renderQuizItem(item) {
     appElement.appendChild(quizItemContainer);
 }
 
-/**
- * @param {boolean} isCorrect 
- */
-function nextQuestion(isCorrect) {
-    let alert = Alert(isCorrect ? "Correct!" : "Incorrect...", 5);
-
-    if (!isCorrect) {
-        // Yes, this causes a data race. Too bad!
-        state.timer.timeLeft -= TIME_PENALTY;
-    }
-
-    if (++state.questionIndex < quizItems.length) {
-        renderQuestion(state.questionIndex, alert);
-    } else {
-        state.timer.stop();
-        renderFinalScore(state.timer.timeLeft, alert);
-    }
-}
-
 function renderAlert(alert) {
     // Remove any existing alerts on the page
     document.querySelectorAll('.alert')
@@ -197,6 +202,7 @@ function renderAlert(alert) {
     alertElement.appendChild(document.createElement('hr'));
     alertElement.append(alert.text);
     
+    // Placing the alert below the app element
     appElement.after(alertElement);
 
     // This produces an exception when it attempts to remove the element after it's already been removed
@@ -209,81 +215,6 @@ function renderAlert(alert) {
 function renderAlertIfNotNullish(alert) {
     // The use of != here instead of !== is deliberate, hence "nullish"
     (alert != null) && renderAlert(alert);
-}
-
-/**
- * @param {string} text 
- * @param {number} timeout 
- */
-function Alert(text, timeout) {
-    return {
-        text,
-        timer: timeout
-    }
-}
-
-function renderFinalScore(finalScore, alert) {
-    appElement.innerHTML = '';
-
-    let headingElement = createHeading('All Done!');
-
-    let reportElement = document.createElement('p');
-    reportElement.textContent = `Your final score is ${finalScore}`;
-    
-    let form = document.createElement('form');
-    form.innerHTML = `
-        <label for="intials">Enter Initials</label>
-        <input type="text" name="initials" id="initials">
-    `;
-
-    form.addEventListener('submit', e => {
-        e.preventDefault();
-        let initials = document.querySelector('#initials').value;
-        if (initials === null || initials === '') {
-            return;
-        }
-
-        saveScore(initials, finalScore);
-        renderHighscoresPage();
-    });
-
-    let submitButton = createButton('Submit', 'submit');
-    form.appendChild(submitButton);
-
-    renderStatusBar();
-    appElement.appendChild(headingElement);
-    appElement.appendChild(reportElement);
-    appElement.appendChild(form);
-    renderAlertIfNotNullish(alert);
-}
-
-function renderHighscoresPage() {
-    appElement.innerHTML = '';
-
-    let headingElement = createHeading('Highscores');
-    
-    let restartButton = createButton('Go Back', null, e => {
-        state.timer.reset();
-        state.questionIndex = 0;
-        renderWelcomeScreen();
-    });
-
-    let clearButton = createButton('Clear Highscores', null, e => {
-        clearHighscores();
-        rerenderHighscoresList()
-    });
-
-    appElement.appendChild(headingElement);
-    renderHighscoresList();
-    appElement.appendChild(restartButton);
-    appElement.appendChild(clearButton);
-}
-
-function createHighscoreEntry(initials, score) {
-    let li = document.createElement('li');
-    li.setAttribute('class', 'high-score');
-    li.textContent = `${initials} - ${score}`;
-    return li;
 }
 
 function renderHighscoresList() {
@@ -300,6 +231,9 @@ function renderHighscoresList() {
     appElement.appendChild(highscoresList);
 }
 
+/**
+ * Renders the highscore list using an existing highscore list element
+ */
 function rerenderHighscoresList() {
     let highscores = loadScoresSorted();
     let highscoresList = document.querySelector('#highscores-list');
@@ -311,12 +245,112 @@ function rerenderHighscoresList() {
     }
 }
 
-function Score(initials, value) {
-    return {
-        initials,
-        value
-    };
+/*** SCENE RENDERING ***/
+
+function renderWelcomeScene() {
+    appElement.innerHTML = '';
+
+    let headingElement = createHeading('Coding Quiz Challenge');
+
+    const description = 'Try to answer the following code-related questions within the time limit. Keep in mind that incorrect answers will penalize your score/time by ten seconds!';
+    let descriptionElement = document.createElement('p');
+    descriptionElement.textContent = description;
+
+    let startButton = createButton('Start Quiz', null, e => {
+        state.timer.start();
+        renderQuestionScene(state.questionIndex, null);
+    });
+
+    renderStatusBar();
+    appElement.appendChild(headingElement);
+    appElement.appendChild(descriptionElement);
+    appElement.appendChild(startButton);
 }
+
+function renderQuestionScene(questionIndex, alert) {
+    renderStatusBar();
+    renderQuizItem(quizItems[questionIndex]);
+    renderAlertIfNotNullish(alert);
+}
+
+/**
+ * @param {boolean} isCorrect 
+ */
+function nextQuestion(isCorrect) {
+    let alert = Alert(isCorrect ? "Correct!" : "Incorrect...", 5);
+
+    if (!isCorrect) {
+        // Yes, this causes a data race. Too bad!
+        state.timer.timeLeft -= TIME_PENALTY;
+    }
+
+    // If there are more questions, go to the next question, otherwise go to the end screen
+    if (++state.questionIndex < quizItems.length) {
+        renderQuestionScene(state.questionIndex, alert);
+    } else {
+        state.timer.stop();
+        renderFinalScoreScene(state.timer.timeLeft, alert);
+    }
+}
+
+function renderFinalScoreScene(finalScore, alert) {
+    appElement.innerHTML = '';
+
+    let headingElement = createHeading('All Done!');
+
+    let reportElement = document.createElement('p');
+    reportElement.textContent = `Your final score is ${finalScore}`;
+    
+    let form = document.createElement('form');
+    form.innerHTML = `
+        <label for="intials">Enter Initials</label>
+        <input type="text" name="initials" id="initials">
+    `;
+
+    form.addEventListener('submit', e => {
+        e.preventDefault(); // Do not let the form submit
+        let initials = document.querySelector('#initials').value;
+        if (initials === null || initials === '') { // No initials provided
+            return;
+        }
+
+        saveScore(initials, finalScore);
+        renderHighscoresScene();
+    });
+
+    let submitButton = createButton('Submit', 'submit');
+    form.appendChild(submitButton);
+
+    renderStatusBar();
+    appElement.appendChild(headingElement);
+    appElement.appendChild(reportElement);
+    appElement.appendChild(form);
+    renderAlertIfNotNullish(alert);
+}
+
+function renderHighscoresScene() {
+    appElement.innerHTML = '';
+
+    let headingElement = createHeading('Highscores');
+    
+    let restartButton = createButton('Go Back', null, e => {
+        state.timer.reset();
+        state.questionIndex = 0;
+        renderWelcomeScene();
+    });
+
+    let clearButton = createButton('Clear Highscores', null, e => {
+        clearHighscores();
+        rerenderHighscoresList()
+    });
+
+    appElement.appendChild(headingElement);
+    renderHighscoresList();
+    appElement.appendChild(restartButton);
+    appElement.appendChild(clearButton);
+}
+
+/*** LOCAL STORAGE ACCESS ***/
 
 function saveScore(initials, score) {
     let highscores = loadScores();
@@ -345,16 +379,8 @@ function clearHighscores() {
     localStorage.setItem(HIGHSCORE_TABLE_STORAGE_KEY, JSON.stringify([]));
 }
 
-/**
- * @param { {initials: string, value: number}[] } scores 
- */
-function sortScores(scores) {
-    return scores.sort((a, b) => b.value - a.value);
-}
-
 function loadScoresSorted() {
-    return sortScores(loadScores());
+    return loadScores().sort((a, b) => b.value - a.value);
 }
 
-
-renderWelcomeScreen();
+renderWelcomeScene();
