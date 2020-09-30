@@ -7,7 +7,8 @@
     justify-content: space-between;
 }
 
-#app {
+#app,
+.alert {
     margin: 0 auto;
     width: 60%;
 }
@@ -42,4 +43,8 @@ a:hover {
 
 ol#highscores-list {
     background-color: rgba(213, 191, 216, 0.5);
+}
+
+p {
+    font-size: 1.5em;
 }
