@@ -9,52 +9,52 @@ const appElement = document.querySelector('#app');
 // The questions for the quiz
 const quizItems = [
     {
-        question: "Commonly-used data types DO NOT include:",
+        question: 'Commonly-used data types DO NOT include:',
         answers: [
-            "strings",
-            "booleans",
-            "alerts",
-            "numbers"
+            'strings',
+            'booleans',
+            'alerts',
+            'numbers'
         ],
         correctIndex: 2
     },
     {
-        question: "The condition in an if statement is contained in ______.",
+        question: 'The condition in an if statement is contained in ______.',
         answers: [
-            "quotes",
-            "curly braces",
-            "parentheses",
-            "square brackets"
+            'quotes',
+            'curly braces',
+            'parentheses',
+            'square brackets'
         ],
         correctIndex: 2
     },
     {
-        question: "Arrays in JavaScript can be used to store ______.",
+        question: 'Arrays in JavaScript can be used to store ______.',
         answers: [
-            "numbers and strings",
-            "other arrays",
-            "booleans",
-            "all of the above"
+            'numbers and strings',
+            'other arrays',
+            'booleans',
+            'all of the above'
         ],
         correctIndex: 3
     },
     {
-        question: "String values must be enclosed within ______ when being assigned to variables.",
+        question: 'String values must be enclosed within ______ when being assigned to variables.',
         answers: [
-            "commas",
-            "curly braces",
-            "quotes",
-            "parentheses"
+            'commas',
+            'curly braces',
+            'quotes',
+            'parentheses'
         ],
         correctIndex: 2
     },
     {
-        question: "A very useful tool used during development and debugging for printing content to the debugger is:",
+        question: 'A very useful tool used during development and debugging for printing content to the debugger is:',
         answers: [
-            "JavaScript",
-            "terminal/bash",
-            "for loops",
-            "console.log"
+            'JavaScript',
+            'terminal/bash',
+            'for loops',
+            'console.log'
         ],
         correctIndex: 3
     }
@@ -73,6 +73,7 @@ let state = {
             this.id = setInterval(() => {
                 if (--this.timeLeft === 0) {
                     this.stop();
+                    renderFinalScoreScene();
                 }
 
                 renderStatusBar();
@@ -249,15 +250,20 @@ function rerenderHighscoresList() {
 
 function renderWelcomeScene() {
     appElement.innerHTML = '';
+    // Make everything centered. This gets cleared before transitioning away.
+    appElement.setAttribute('style', 'display: flex; flex-direction: column; justify-contents: center; align-items: center;')
 
     let headingElement = createHeading('Coding Quiz Challenge');
+    headingElement.style.textAlign = 'center';
 
     const description = 'Try to answer the following code-related questions within the time limit. Keep in mind that incorrect answers will penalize your score/time by ten seconds!';
     let descriptionElement = document.createElement('p');
     descriptionElement.textContent = description;
+    descriptionElement.style.textAlign = 'center'
 
     let startButton = createButton('Start Quiz', null, e => {
         state.timer.start();
+        appElement.setAttribute('style', '');
         renderQuestionScene(state.questionIndex, null);
     });
 
@@ -277,7 +283,7 @@ function renderQuestionScene(questionIndex, alert) {
  * @param {boolean} isCorrect 
  */
 function nextQuestion(isCorrect) {
-    let alert = Alert(isCorrect ? "Correct!" : "Incorrect...", 5);
+    let alert = Alert(isCorrect ? 'Correct!' : 'Incorrect...', 5);
 
     if (!isCorrect) {
         // Yes, this causes a data race. Too bad!
@@ -330,6 +336,7 @@ function renderFinalScoreScene(finalScore, alert) {
 
 function renderHighscoresScene() {
     appElement.innerHTML = '';
+    document.querySelector('#status-bar').innerHTML = '';
 
     let headingElement = createHeading('Highscores');
     
